@@ -1,86 +1,184 @@
-## dtst_proc_tool.py
-### 这是什么？
-- 这是一个帮助数据集生成的工作流脚本
-- 它将视频直接转换成经过处理的图像集合
-- 用户无需担心内部实现，这是一条龙服务
-### 它能干什么？
-- 将你提供的视频文件转换成图像
-- 对图像进行预处理（包括大小调整，随机数据增强等处理）
-- 将所有处理完成的图像放进你提供的文件夹内
-### 如何使用？
-- 该工具封装了简单易用的接口（dtst_proc_tool.py）
-- 你需要提供 **视频文件的路径** 和 **用于存放生成图像的文件夹的路径**
-- 具体使用见例程 **dtst_proc_tool_use.py**
-### 环境要求
-- 包含依赖如下：
+# 数据集处理工具集 (Dataset Processing Toolkit)
+
+这是一个用于数据集处理的Python工具集合，包含多个实用工具来简化数据集创建、清洗和标注流程。
+
+## 📋 工具概览
+
+| 工具名称 | 主要功能 | 依赖 | 状态 |
+|---------|---------|------|------|
+| [dtst_proc_tool.py](#dtst_proc_toolpy) | 视频转图像数据集 | opencv-python | ✅ 已验证 |
+| [rearrangement.py](#rearrangementpy) | 图像重命名整理 | 无 | ✅ 已验证 |
+| [yolo_detect_img.py](#yolo_detect_imgpy) | YOLO图像检测封装 | ultralytics | ✅ 已验证 |
+| [yolo_ai2ai.py](#yolo_ai2aipy) | YOLO自动标注工具 | ultralytics | ✅ 已验证 |
+
+---
+
+## 🎬 dtst_proc_tool.py
+
+### 功能描述
+将视频文件转换为经过预处理的图像数据集，提供一站式视频到图像转换服务。
+
+### 主要特性
+- 🎥 视频文件直接转换为图像集合
+- 🖼️ 图像预处理（尺寸调整、数据增强等）
+- 📁 自动组织输出文件夹结构
+- 🎯 支持YOLO数据集格式
+
+### 使用方法
+```python
+# 参考 dtst_proc_tool_use.py
+from dtst_proc_tool import process_video_to_dataset
+
+# 基本使用
+process_video_to_dataset(
+    video_path="your_video.mp4",
+    output_dir="output_dataset",
+    enable_augmentation=True,  # 是否启用数据增强
+    target_size=(640, 640)     # 目标图像尺寸
+)
 ```
+
+### 环境要求
+```bash
 pip install opencv-python
 ```
-- 建议使用虚拟环境
-### 注意事项
-- 该工具功能已经验证完毕，功能正常
-### 更新
-- 25-11-10 已经修复噪点异常，更换为更加保守的干扰策略
-- 25-11-10 可选择是否增强，或仅产生图像
-- 25-11-10 支持自动生成符合yolo要求的文件组织结构
 
-## rearrangement.py
-### 这是什么？
-- 这是一个用于清洗图片标签的工作流脚本
-- 它重新将所有图片按数字顺序命名
-### 它能干什么？
-- 将文件夹内所有图片重命名，无论他们原来有多么混乱
-- 按照 00000 - 99999 （最大）的命名规范进行重命名
-### 如何使用？
-- 该工具封装了简单易用的接口
-- 你需要提供 **目标图像数据集的路径** 和 **用于存放新的图像数据集的路径**
-- 具体使用见例程 **rearrangement_use.py**
-### 环境要求
-- 理论上支持标准python环境
-- 无需安装第三方依赖
-### 注意事项
-- 该工具功能已经验证完毕，功能正常
-### 更新
-- 25-11-18 首次上传
+### 更新日志
+- **25-11-10**: 修复噪点异常，采用更保守的干扰策略
+- **25-11-10**: 增加是否启用增强的可选项
+- **25-11-10**: 支持自动生成YOLO格式的文件组织结构
 
-## yolo_detect_img.py
-### 这是什么？
-- 这是一个方便快捷的获得yolo对于图像的检测结果的封装
-### 它能干什么？
-- 将yolo图像检测封装为一个易于使用的接口
-### 如何使用？
-- 目前它作为 **yolo_ai2ai.py** 的依赖使用
-- 你也可以参考 **yolo_ai2ai.py** 作为使用例程
-### 环境要求
-- 包含依赖如下：
+---
+
+## 📁 rearrangement.py
+
+### 功能描述
+清洗和整理图像数据集，将混乱的图片文件按数字顺序重新命名。
+
+### 主要特性
+- 🔄 自动重命名文件夹内所有图片
+- 🔢 按 `00000` - `99999` 格式标准化命名
+- 🧹 清理混乱的文件名结构
+
+### 使用方法
+```python
+# 参考 rearrangement_use.py
+from rearrangement import rearrange_images
+
+# 基本使用
+rearrange_images(
+    input_dir="raw_images",    # 原始图像文件夹
+    output_dir="cleaned_images" # 整理后的输出文件夹
+)
 ```
-# pip3 install torch torchvision # 建议使用cuda环境
+
+### 环境要求
+- 标准Python环境
+- 无需额外依赖
+
+### 更新日志
+- **25-11-18**: 首次发布
+
+---
+
+## 🔍 yolo_detect_img.py
+
+### 功能描述
+YOLO图像检测的便捷封装，提供简单易用的接口获取检测结果。
+
+### 主要特性
+- 🎯 封装YOLO检测为易用接口
+- 📊 返回结构化检测结果
+- 🔧 作为其他工具的依赖组件
+
+### 使用方法
+```python
+# 参考 yolo_ai2ai.py 中的使用示例
+from yolo_detect_img import detect_image
+
+# 检测单张图像
+results = detect_image(
+    model_path="yolo_model.pt",
+    image_path="test_image.jpg"
+)
+```
+
+### 环境要求
+```bash
+# 建议使用CUDA环境
+# pip3 install torch torchvision
 pip install ultralytics
 ```
-- 建议使用虚拟环境
-### 注意事项
-- 该工具功能已经验证完毕，功能正常
-### 更新
-- 25-11-18 首次上传
 
-## yolo_ai2ai.py
-### 这是什么？
-- 使用yolo来标注图像数据集的工具
-### 它能干什么？
-- 它能使用已经存在的yolo模型来帮助标注未标注的图像数据集
-### 如何使用？
-- 该工具封装了简单易用的接口
-- 你需要提供 **yolo模型的路径** 、 **图像数据集的路径** 、**存放标记标签的路径**
-- 具体使用见例程 **yolo_ai2ai_use.py**
-### 环境要求
-- 包含依赖如下：
+### 更新日志
+- **25-11-18**: 首次发布
+
+---
+
+## 🏷️ yolo_ai2ai.py
+
+### 功能描述
+使用现有YOLO模型自动标注未标注的图像数据集。
+
+### 主要特性
+- 🤖 利用预训练模型自动标注
+- 📝 生成YOLO格式的标注文件
+- ⚡ 批量处理整个数据集
+
+### 使用方法
+```python
+# 参考 yolo_ai2ai_use.py
+from yolo_ai2ai import auto_annotate_dataset
+
+# 自动标注数据集
+auto_annotate_dataset(
+    model_path="yolo_model.pt",        # YOLO模型路径
+    image_dir="unlabeled_images",      # 未标注图像文件夹
+    output_dir="annotated_dataset"     # 标注输出文件夹
+)
 ```
-# 它依赖于这个工具： **yolo_ai2ai.py** 
-# pip3 install torch torchvision # 建议使用cuda环境
+
+### 环境要求
+```bash
+# 依赖 yolo_detect_img.py
+# pip3 install torch torchvision  # 建议使用CUDA环境
 pip install ultralytics
 ```
-- 建议使用虚拟环境
-### 注意事项
-- 该工具功能已经验证完毕，功能正常
-### 更新
-- 25-11-18 首次上传
+
+### 更新日志
+- **25-11-18**: 首次发布
+
+---
+
+## 🚀 快速开始
+
+### 1. 安装依赖
+```bash
+# 基础依赖
+pip install opencv-python ultralytics
+```
+
+### 2. 环境建议
+- 使用Python虚拟环境
+- 建议使用CUDA环境以获得更好的性能
+- 确保有足够的磁盘空间存储处理后的数据集
+
+### 3. 使用流程
+1. 使用 `dtst_proc_tool.py` 从视频创建图像数据集
+2. 使用 `rearrangement.py` 整理图像文件名
+3. 使用 `yolo_ai2ai.py` 自动标注数据集
+
+---
+
+## 📝 注意事项
+
+- 所有工具功能均已验证，运行正常
+- 建议在处理前备份原始数据
+- 根据数据集大小预留足够的内存和存储空间
+- 使用示例代码前请确保理解参数含义
+
+---
+
+## 🔄 更新计划
+
+持续优化工具性能和用户体验，欢迎反馈和建议。
