@@ -34,12 +34,12 @@ def video_to_frames(video_path, frames_path, sample=1):
     print(f"Done. Sample {sample_frames} frames into {frames_path}")
 
 # 图像大小调整
-def image_resize(image, size=(640, 640), color=(0, 0, 0), fill=False):
+def image_resize(image, size=(640, 640), color=(114, 114, 114), cut_fill=False, blur_fill=True):
     # 获取图像信息
     h, w = image.shape[:2]
     target_w, target_h = size
-    # 填充剪裁
-    if fill:
+    # 剪裁填充
+    if cut_fill:
         # 计算缩放比例
         scale = max(target_w / w, target_h / h)
         new_w, new_h = int(w * scale), int(h * scale)
@@ -55,16 +55,53 @@ def image_resize(image, size=(640, 640), color=(0, 0, 0), fill=False):
         new_w, new_h = int(w * scale), int(h * scale)
         # 缩放
         resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-        # 创建空白背景
-        canvas = np.full((target_h, target_w, 3), color, dtype=np.uint8)
-        # 将缩放后的图像放到中心
-        top = (target_h - new_h) // 2
-        left = (target_w - new_w) // 2
-        canvas[top:top+new_h, left:left+new_w] = resized_image
-        return canvas
+        
+        # 模糊填充效果
+        if blur_fill:
+            # 1. 创建模糊背景底板
+            # 将原图缩小到1/8进行模糊处理（进一步降低计算量）
+            small_w, small_h = max(1, w // 8), max(1, h // 8)
+            
+            # 缩小图像
+            small_image = cv2.resize(image, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
+            
+            # 对缩小后的图像进行高斯模糊（增大模糊比例）
+            kernel_size = max(3, min(small_w, small_h) // 2)  # 自适应核大小
+            if kernel_size % 2 == 0:  # 确保核大小为奇数
+                kernel_size += 1
+            blurred_small = cv2.GaussianBlur(small_image, (kernel_size, kernel_size), 0)
+            
+            # 将模糊后的图像拉伸到目标分辨率
+            blurred_background = cv2.resize(blurred_small, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
+            
+            # 2. 将原图按比例缩小放在中间
+            # 计算缩放比例
+            scale = min(target_w / w, target_h / h)
+            new_w, new_h = int(w * scale), int(h * scale)
+            
+            # 缩放原图
+            resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+            
+            # 计算放置位置
+            top = (target_h - new_h) // 2
+            left = (target_w - new_w) // 2
+            
+            # 3. 将原图叠加到模糊背景上
+            result = blurred_background.copy()
+            result[top:top+new_h, left:left+new_w] = resized_image
+            
+            return result
+        else:
+            # 创建空背景
+            canvas = np.full((target_h, target_w, 3), color, dtype=np.uint8)
+            # 将缩放后的图像放到中心
+            top = (target_h - new_h) // 2
+            left = (target_w - new_w) // 2
+            canvas[top:top+new_h, left:left+new_w] = resized_image
+            return canvas
 
 # 批量调整文件夹内所有图像
-def batch_resize_folder(input_folder, output_folder, size=(640, 640), fill=False):
+def batch_resize_folder(input_folder, output_folder, size=(640, 640), cut_fill=False, blur_fill=True):
     # 创建输出目录   
     os.makedirs(output_folder, exist_ok=True)
     # 记录所有图像
@@ -78,7 +115,7 @@ def batch_resize_folder(input_folder, output_folder, size=(640, 640), fill=False
         if image is None:
             continue
         # 处理图像
-        resized_image = image_resize(image, size, fill=fill)
+        resized_image = image_resize(image, size, cut_fill=cut_fill, blur_fill=blur_fill)
         save_path = os.path.join(output_folder, fname)
         cv2.imwrite(save_path, resized_image)
         count += 1
@@ -196,7 +233,7 @@ def split_images(input_folder, output_folder, train_ratio=0.7, val_ratio=0.2, te
     print("Saved to:", output_folder)
 
 # 一条龙处理
-def dpt_aio(input_video, output_folder, augment=True, split=False, sample=1, fill=False):
+def dpt_aio(input_video, output_folder, augment=True, split=False, sample=1, blur_fill=True):
     # 创建临时目录
     temp_path=f"{output_folder}/.temp"
     if os.path.exists(temp_path):
@@ -205,7 +242,7 @@ def dpt_aio(input_video, output_folder, augment=True, split=False, sample=1, fil
     # 视频提取图像
     video_to_frames(input_video, temp_path, sample=sample)
     # 批量调整文件夹内所有图像
-    batch_resize_folder(temp_path, temp_path, fill=fill)
+    batch_resize_folder(temp_path, temp_path, cut_fill=not blur_fill, blur_fill=blur_fill)
     # 批量增强文件夹内所有图像
     if(augment):
         batch_augment_folder(temp_path, output_folder)
