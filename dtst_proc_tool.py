@@ -146,7 +146,7 @@ def augment_image(image, augment_prob=1):
         noise = np.random.normal(0, 0.2, aug_image.shape).astype(np.uint8)
         aug_image = cv2.add(aug_image, noise)
     # 7️⃣ 鱼眼畸变模拟
-    if random.random() < 0.1:
+    if random.random() < 0.0:
         # 创建全图鱼眼畸变效果
         h, w = aug_image.shape[:2]
         # 创建畸变映射
