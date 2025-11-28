@@ -124,17 +124,17 @@ def augment_image(image, augment_prob=1):
     if random.random() < 0.4:
         aug_image = cv2.flip(aug_image, 1)
     # 2️⃣ 随机旋转 ±15°
-    if random.random() < 0.2:
+    if random.random() < 0.4:
         angle = random.uniform(-15, 15)
         M = cv2.getRotationMatrix2D((w/2, h/2), angle, 1.0)
         aug_image = cv2.warpAffine(aug_image, M, (w, h), borderMode=cv2.BORDER_REFLECT_101)
     # 3️⃣ 随机亮度/对比度
     if random.random() < 0.2:
         alpha = random.uniform(0.75, 1.25)
-        beta = random.uniform(-30, 30)
+        beta = random.uniform(-25, 25)
         aug_image = cv2.convertScaleAbs(aug_image, alpha=alpha, beta=beta)
     # 4️⃣ 高斯模糊
-    if random.random() < 0.1:
+    if random.random() < 0.2:
         k = random.choice([3,5])
         aug_image = cv2.GaussianBlur(aug_image, (k,k), 0)
     # 5️⃣ 灰度化
@@ -145,8 +145,52 @@ def augment_image(image, augment_prob=1):
     if random.random() < 0.1:
         noise = np.random.normal(0, 0.2, aug_image.shape).astype(np.uint8)
         aug_image = cv2.add(aug_image, noise)
+    # 7️⃣ 鱼眼畸变模拟
+    if random.random() < 0.1:
+        # 创建全图鱼眼畸变效果
+        h, w = aug_image.shape[:2]
+        # 创建畸变映射
+        map_x = np.zeros((h, w), dtype=np.float32)
+        map_y = np.zeros((h, w), dtype=np.float32)
+        
+        # 中心点坐标
+        center_x, center_y = w // 2, h // 2
+        # 最大半径（使用对角线的一半作为最大半径，确保全图覆盖）
+        max_radius = np.sqrt(center_x**2 + center_y**2)
+        
+        # 随机畸变强度（调整为更适中的范围）
+        distortion_strength = random.uniform(0.1, 0.3)
+        
+        # 创建全图鱼眼畸变映射
+        for y in range(h):
+            for x in range(w):
+                # 计算到中心的距离
+                dx = x - center_x
+                dy = y - center_y
+                distance = np.sqrt(dx*dx + dy*dy)
+                
+                # 全图应用畸变，不再限制半径
+                if distance > 0:
+                    # 归一化距离
+                    r = distance / max_radius
+                    # 鱼眼畸变公式：r' = r * (1 + k * r^2)
+                    new_r = r * (1 + distortion_strength * r * r)
+                    
+                    # 计算新坐标
+                    new_x = center_x + (dx / distance) * new_r * max_radius
+                    new_y = center_y + (dy / distance) * new_r * max_radius
+                    
+                    map_x[y, x] = new_x
+                    map_y[y, x] = new_y
+                else:
+                    # 中心点保持不变
+                    map_x[y, x] = center_x
+                    map_y[y, x] = center_y
+        
+        # 应用畸变映射
+        aug_image = cv2.remap(aug_image, map_x, map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
     # CLAHE亮度均衡
-    if random.random() < 1.0:
+    if random.random() < 2.0:
         # 1️⃣ 转换到 LAB 色彩空间
         lab = cv2.cvtColor(aug_image, cv2.COLOR_BGR2LAB)
         # 2️⃣ 分离通道
