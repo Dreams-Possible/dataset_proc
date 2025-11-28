@@ -34,7 +34,7 @@ def video_to_frames(video_path, frames_path, sample=1):
     print(f"Done. Sample {sample_frames} frames into {frames_path}")
 
 # 图像大小调整
-def image_resize(image, size=(640, 640), color=(114, 114, 114), cut_fill=False, blur_fill=True):
+def image_resize(image, size=(640, 640), norm_fill_color=(114, 114, 114), cut_fill=False, blur_fill=True):
     # 获取图像信息
     h, w = image.shape[:2]
     target_w, target_h = size
@@ -58,42 +58,32 @@ def image_resize(image, size=(640, 640), color=(114, 114, 114), cut_fill=False, 
         
         # 模糊填充效果
         if blur_fill:
-            # 1. 创建模糊背景底板
-            # 将原图缩小到1/8进行模糊处理（进一步降低计算量）
+            # 创建模糊背景底板
             small_w, small_h = max(1, w // 8), max(1, h // 8)
-            
             # 缩小图像
             small_image = cv2.resize(image, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
-            
-            # 对缩小后的图像进行高斯模糊（增大模糊比例）
-            kernel_size = max(3, min(small_w, small_h) // 2)  # 自适应核大小
-            if kernel_size % 2 == 0:  # 确保核大小为奇数
+            # 自适应核大小
+            kernel_size = max(3, min(small_w, small_h) // 2) 
+            # 确保核大小为奇数
+            if kernel_size % 2 == 0:
                 kernel_size += 1
+            # 高斯模糊
             blurred_small = cv2.GaussianBlur(small_image, (kernel_size, kernel_size), 0)
-            
-            # 将模糊后的图像拉伸到目标分辨率
+            # 拉伸放大
             blurred_background = cv2.resize(blurred_small, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
-            
-            # 2. 将原图按比例缩小放在中间
-            # 计算缩放比例
+            # 将缩放后的图像放到中心
             scale = min(target_w / w, target_h / h)
             new_w, new_h = int(w * scale), int(h * scale)
-            
-            # 缩放原图
             resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-            
-            # 计算放置位置
             top = (target_h - new_h) // 2
             left = (target_w - new_w) // 2
-            
-            # 3. 将原图叠加到模糊背景上
             result = blurred_background.copy()
             result[top:top+new_h, left:left+new_w] = resized_image
             
             return result
         else:
-            # 创建空背景
-            canvas = np.full((target_h, target_w, 3), color, dtype=np.uint8)
+            # 创建空背景（默认填充灰色）
+            canvas = np.full((target_h, target_w, 3), norm_fill_color, dtype=np.uint8)
             # 将缩放后的图像放到中心
             top = (target_h - new_h) // 2
             left = (target_w - new_w) // 2
